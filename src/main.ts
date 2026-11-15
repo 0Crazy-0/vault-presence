@@ -205,7 +205,7 @@ export default class ObsidianDiscordRPC extends Plugin {
 
     await user.setActivity({
       ...base,
-      ...(showCurrentFileName && { details: `Editing ${file}` }),
+      ...(showCurrentFileName && { details: file }),
       ...(showVaultName && { state: `Vault: ${vault}` }),
     });
   }
