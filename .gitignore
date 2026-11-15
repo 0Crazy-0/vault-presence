@@ -1,0 +1,17 @@
+# Intellij
+*.iml
+.idea
+
+# pnpm
+node_modules
+
+# build
+dist/
+main.js
+main.js.map
+*.js.map
+test-vault/
+*.zip
+
+#vsocde
+.vscode/
