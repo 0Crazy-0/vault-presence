@@ -146,16 +146,38 @@ export class DiscordRPCSettingsTab extends PluginSettingTab {
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings[key]).onChange(async (value) => {
           this.plugin.settings[key] = value;
-          await this.plugin.saveData(this.plugin.settings);
 
-          if (notices) {
-            this.logger.logIgnoreNoNotice(value ? notices[0] : notices[1]);
-          }
+          // Redaction must not depend on persistence succeeding, so the
+          // activity is refreshed before settings are saved.
+          let refreshed = true;
           if (refresh) {
-            await this.plugin.refreshActivity();
+            try {
+              await this.plugin.refreshActivity();
+            } catch (error) {
+              refreshed = false;
+              console.error(
+                `discordrpc: failed to apply ${name} to Discord`,
+                error,
+              );
+              this.logger.logIgnoreNoNotice(
+                `Failed to apply ${name}; presence may still show private details.`,
+              );
+            }
+          }
+          if (refreshed && notices) {
+            this.logger.logIgnoreNoNotice(value ? notices[0] : notices[1]);
           }
           if (renderState) {
             this.plugin.setState(this.plugin.getState());
+          }
+
+          try {
+            await this.plugin.saveData(this.plugin.settings);
+          } catch (error) {
+            console.error(
+              `discordrpc: failed to save settings after toggling ${name}`,
+              error,
+            );
           }
         }),
       );
