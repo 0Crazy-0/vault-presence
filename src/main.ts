@@ -70,11 +70,18 @@ export default class ObsidianDiscordRPC extends Plugin {
       callback: async () => await this.disconnectDiscord(),
     });
 
+    // Track the already-open note so a manual connection shows it
+    // without waiting for another file-open event.
+    const activeFile = this.app.workspace.getActiveFile();
+    if (activeFile) {
+      this.currentFile = activeFile;
+    }
+
     if (this.settings.connectOnStart) {
       await this.connectDiscord();
 
-      const activeFile = this.app.workspace.getActiveFile();
       if (activeFile) {
+        // Republish the activity now that the connection is ready.
         await this.onFileOpen(activeFile);
       }
     } else {
