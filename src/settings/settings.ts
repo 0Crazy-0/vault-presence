@@ -3,10 +3,10 @@ export class DiscordRPCSettings {
   showCurrentFileName: boolean = true;
   showPopups: boolean = true;
   customVaultName: string = "";
-  showFileExtension: boolean = false;
-  useLoadedTime: boolean = false;
+  showFileExtension: boolean = true;
+  useLoadedTime: boolean = true;
   connectOnStart: boolean = true;
-  autoHideStatusBar: boolean = true;
+  autoHideStatusBar: boolean = false;
   privacyMode: boolean = false;
 }
 
