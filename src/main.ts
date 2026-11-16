@@ -198,8 +198,11 @@ export default class ObsidianDiscordRPC extends Plugin {
   async disconnectDiscord(): Promise<void> {
     // Invalidate pending connection attempts so a reconnect that is still
     // awaiting login/ready cannot restore presence after the disconnect.
-    this.connectionId++;
+    const id = ++this.connectionId;
     await this.destroyClient();
+    // A newer connectDiscord() captured a higher generation while we were
+    // destroying the client; leave its state and logging alone.
+    if (!this.isAttemptValid(id)) return;
     this.setState(PluginState.disconnected);
     this.logger.log("Disconnected from Discord", this.settings.showPopups);
   }
