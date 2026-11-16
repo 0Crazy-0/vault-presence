@@ -15,6 +15,8 @@ type ToggleKey =
 interface ToggleOptions {
   /** Republishes the activity to Discord after saving. */
   refresh?: boolean;
+  /** Re-renders the status bar for the current state with the updated setting. */
+  renderState?: boolean;
   /** Notices [when enabled, when disabled]. */
   notices?: [on: string, off: string];
 }
@@ -109,6 +111,7 @@ export class DiscordRPCSettingsTab extends PluginSettingTab {
       "Automatically hide Status Bar",
       "Automatically hide status bar after successfully connecting to Discord.",
       "autoHideStatusBar",
+      { renderState: true },
     );
 
     this.addHeading("Startup settings");
@@ -135,7 +138,7 @@ export class DiscordRPCSettingsTab extends PluginSettingTab {
     name: string,
     desc: string,
     key: ToggleKey,
-    { refresh = false, notices }: ToggleOptions = {},
+    { refresh = false, renderState = false, notices }: ToggleOptions = {},
   ): void {
     new Setting(this.containerEl)
       .setName(name)
@@ -150,6 +153,9 @@ export class DiscordRPCSettingsTab extends PluginSettingTab {
           }
           if (refresh) {
             await this.plugin.refreshActivity();
+          }
+          if (renderState) {
+            this.plugin.setState(this.plugin.getState());
           }
         }),
       );
