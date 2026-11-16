@@ -229,8 +229,8 @@ export default class ObsidianDiscordRPC extends Plugin {
     fileName: string,
     fileExtension: string,
   ): Promise<void> {
-    const user = this.rpc?.user;
-    if (this.getState() !== PluginState.connected || !user) {
+    const rpc = this.rpc;
+    if (this.getState() !== PluginState.connected || !rpc) {
       return;
     }
 
@@ -260,25 +260,38 @@ export default class ObsidianDiscordRPC extends Plugin {
       this.lastSetTimeFile = this.currentFile;
     }
 
+    // Raw SET_ACTIVITY payload: the library's user.setActivity() always
+    // injects created_at: Date.now(), which makes Discord put this activity
+    // on top of the user's activity list and displace presences connected
+    // earlier (e.g. VS Code). Sending the payload without created_at keeps
+    // Discord's first-come order, like other Rich Presence clients do.
     const base = {
-      startTimestamp: date,
-      largeImageKey: "vault_logo",
-      largeImageText: "Obsidian",
+      timestamps: { start: date.getTime() },
+      assets: {
+        large_image: "vault_logo",
+        large_text: "Obsidian",
+      },
     };
 
     if (privacyMode) {
-      await user.setActivity({
-        ...base,
-        details: "Editing Notes",
-        state: "Working in a Vault",
+      await rpc.request("SET_ACTIVITY", {
+        pid: process.pid,
+        activity: {
+          ...base,
+          details: "Editing Notes",
+          state: "Working in a Vault",
+        },
       });
       return;
     }
 
-    await user.setActivity({
-      ...base,
-      ...(showCurrentFileName && { details: file }),
-      ...(showVaultName && { state: `Vault: ${vault}` }),
+    await rpc.request("SET_ACTIVITY", {
+      pid: process.pid,
+      activity: {
+        ...base,
+        ...(showCurrentFileName && { details: file }),
+        ...(showVaultName && { state: `Vault: ${vault}` }),
+      },
     });
   }
 
