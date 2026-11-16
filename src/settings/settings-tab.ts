@@ -80,8 +80,8 @@ const TOGGLES: Record<ToggleKey, ToggleSpec> = {
     desc: "Automatically connect to Discord on startup. You can always click the status bar to manually connect.",
   },
   showPopups: {
-    name: "Show Notices",
-    desc: "Enable this to show connection Notices.",
+    name: "Show Connection Notices",
+    desc: "Enable this to show Notices when the plugin connects to, disconnects from, or loses connection to Discord.",
     options: { notices: ["Notices Enabled", "Notices Disabled"] },
   },
 };
@@ -90,6 +90,40 @@ const CUSTOM_VAULT_NAME = {
   name: "Set Custom Vault Name",
   desc: "Change the vault name shown publicly. Leave blank to use your actual vault name.",
 };
+
+type SettingKey = ToggleKey | "customVaultName";
+
+interface SectionSpec {
+  heading: string;
+  keys: SettingKey[];
+}
+
+// Shared section layout used by display() (Obsidian < 1.13) and
+// getSettingDefinitions() (Obsidian 1.13+), so both render identically.
+const SECTIONS: SectionSpec[] = [
+  {
+    heading: "Privacy",
+    keys: [
+      "privacyMode",
+      "showVaultName",
+      "customVaultName",
+      "showCurrentFileName",
+      "showFileExtension",
+    ],
+  },
+  {
+    heading: "Presence",
+    keys: ["useWatchingType", "useLoadedTime"],
+  },
+  {
+    heading: "Status bar",
+    keys: ["autoHideStatusBar"],
+  },
+  {
+    heading: "Connection",
+    keys: ["connectOnStart", "showPopups"],
+  },
+];
 
 export class DiscordRPCSettingsTab extends PluginSettingTab {
   private readonly logger = new Logger();
@@ -116,27 +150,23 @@ export class DiscordRPCSettingsTab extends PluginSettingTab {
   // effects (refreshing Discord, notices, status bar) that must run before
   // the settings are saved.
   getSettingDefinitions() {
-    const toggle = (key: ToggleKey) => ({
-      name: TOGGLES[key].name,
-      desc: TOGGLES[key].desc,
-      render: (setting: Setting) => this.bindToggle(setting, key),
-    });
+    const setting = (key: SettingKey) =>
+      key === "customVaultName"
+        ? {
+            ...CUSTOM_VAULT_NAME,
+            render: (setting: Setting) => this.bindCustomName(setting),
+          }
+        : {
+            name: TOGGLES[key].name,
+            desc: TOGGLES[key].desc,
+            render: (setting: Setting) => this.bindToggle(setting, key),
+          };
 
-    return [
-      toggle("privacyMode"),
-      toggle("showVaultName"),
-      {
-        ...CUSTOM_VAULT_NAME,
-        render: (setting: Setting) => this.bindCustomName(setting),
-      },
-      toggle("showCurrentFileName"),
-      toggle("showFileExtension"),
-      toggle("useWatchingType"),
-      toggle("useLoadedTime"),
-      toggle("autoHideStatusBar"),
-      toggle("connectOnStart"),
-      toggle("showPopups"),
-    ];
+    return SECTIONS.map((section) => ({
+      type: "group" as const,
+      heading: section.heading,
+      items: section.keys.map(setting),
+    }));
   }
 
   // Obsidian < 1.13 fallback.
@@ -144,33 +174,20 @@ export class DiscordRPCSettingsTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    this.addHeading("Vault name settings");
-    this.addToggle("privacyMode");
-    this.addToggle("showVaultName");
-    this.bindCustomName(
-      new Setting(containerEl)
-        .setName(CUSTOM_VAULT_NAME.name)
-        .setDesc(CUSTOM_VAULT_NAME.desc),
-    );
-
-    this.addHeading("File name settings");
-    this.addToggle("showCurrentFileName");
-    this.addToggle("showFileExtension");
-
-    this.addHeading("Presence settings");
-    this.addToggle("useWatchingType");
-
-    this.addHeading("Time settings");
-    this.addToggle("useLoadedTime");
-
-    this.addHeading("Status bar settings");
-    this.addToggle("autoHideStatusBar");
-
-    this.addHeading("Startup settings");
-    this.addToggle("connectOnStart");
-
-    this.addHeading("Notice settings");
-    this.addToggle("showPopups");
+    for (const section of SECTIONS) {
+      this.addHeading(section.heading);
+      for (const key of section.keys) {
+        if (key === "customVaultName") {
+          this.bindCustomName(
+            new Setting(containerEl)
+              .setName(CUSTOM_VAULT_NAME.name)
+              .setDesc(CUSTOM_VAULT_NAME.desc),
+          );
+        } else {
+          this.addToggle(key);
+        }
+      }
+    }
   }
 
   private addHeading(name: string): void {
