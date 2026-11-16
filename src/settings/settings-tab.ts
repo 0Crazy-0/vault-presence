@@ -3,6 +3,7 @@ import { Logger } from "../logger";
 import type ObsidianDiscordRPC from "../main";
 
 type ToggleKey =
+  | "useWatchingType"
   | "privacyMode"
   | "showVaultName"
   | "showCurrentFileName"
@@ -30,6 +31,11 @@ interface ToggleSpec {
 // Single source of truth shared by display() (Obsidian < 1.13) and
 // getSettingDefinitions() (Obsidian 1.13+), so both stay in sync.
 const TOGGLES: Record<ToggleKey, ToggleSpec> = {
+  useWatchingType: {
+    name: "Show as Watching",
+    desc: "Show the presence as Watching instead of Playing. This lets it coexist with other Rich Presences that use a different activity type.",
+    options: { refresh: true },
+  },
   privacyMode: {
     name: "Privacy Mode",
     desc: "Enable this to hide the name of the vault and hide file names.",
@@ -125,6 +131,7 @@ export class DiscordRPCSettingsTab extends PluginSettingTab {
       },
       toggle("showCurrentFileName"),
       toggle("showFileExtension"),
+      toggle("useWatchingType"),
       toggle("useLoadedTime"),
       toggle("autoHideStatusBar"),
       toggle("connectOnStart"),
@@ -149,6 +156,9 @@ export class DiscordRPCSettingsTab extends PluginSettingTab {
     this.addHeading("File name settings");
     this.addToggle("showCurrentFileName");
     this.addToggle("showFileExtension");
+
+    this.addHeading("Presence settings");
+    this.addToggle("useWatchingType");
 
     this.addHeading("Time settings");
     this.addToggle("useLoadedTime");

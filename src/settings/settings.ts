@@ -8,6 +8,7 @@ export class DiscordRPCSettings {
   connectOnStart: boolean = true;
   autoHideStatusBar: boolean = false;
   privacyMode: boolean = false;
+  useWatchingType: boolean = false;
 }
 
 export enum PluginState {

@@ -241,6 +241,7 @@ export default class ObsidianDiscordRPC extends Plugin {
       privacyMode,
       showVaultName,
       showCurrentFileName,
+      useWatchingType,
     } = this.settings;
 
     const vault = customVaultName === "" ? vaultName : customVaultName;
@@ -265,7 +266,10 @@ export default class ObsidianDiscordRPC extends Plugin {
     // on top of the user's activity list and displace presences connected
     // earlier (e.g. VS Code). Sending the payload without created_at keeps
     // Discord's first-come order, like other Rich Presence clients do.
+    // The type field is omitted when useWatchingType is off so the payload
+    // stays identical to the historical type 0 (Playing) one.
     const base = {
+      ...(useWatchingType && { type: 3 }),
       timestamps: { start: date.getTime() },
       assets: {
         large_image: "vault_logo",
