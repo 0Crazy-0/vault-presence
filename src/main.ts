@@ -4,6 +4,7 @@ import { Logger } from "./logger";
 import { DiscordRPCSettings, PluginState } from "./settings/settings";
 import { DiscordRPCSettingsTab } from "./settings/settings-tab";
 import { StatusBar } from "./status-bar";
+import type { Socket } from "node:net";
 
 const CLIENT_ID = "1571667739095990462";
 const READY_TIMEOUT_MS = 3000;
@@ -21,6 +22,10 @@ export default class ObsidianDiscordRPC extends Plugin {
   currentFile?: TFile;
   readonly loadedTime = new Date();
   lastSetTime = new Date();
+  // The note lastSetTime was captured for, so display-only republishes
+  // (e.g. settings changes) keep the elapsed time while a note change
+  // starts a fresh one. Cleared while "Use Obsidian Total Time" is active.
+  private lastSetTimeFile?: TFile;
 
   setState(state: PluginState): void {
     this.state = state;
@@ -129,9 +134,10 @@ export default class ObsidianDiscordRPC extends Plugin {
     await this.destroyClient();
     if (!this.isAttemptValid(id)) return;
 
-    // loadedTime is initialized at plugin load and intentionally not
-    // reset here so reconnects preserve the "Use Obsidian Total Time"
-    // start timestamp.
+    // Seeds the start timestamp reused by refreshActivity until the current
+    // note changes. loadedTime is initialized at plugin load and
+    // intentionally not reset here so reconnects preserve the
+    // "Use Obsidian Total Time" start timestamp.
     this.lastSetTime = new Date();
 
     const rpc = new Client({
@@ -139,6 +145,21 @@ export default class ObsidianDiscordRPC extends Plugin {
       transport: { type: "ipc" },
     });
     this.rpc = rpc;
+
+    // Discord quitting closes the IPC socket; surface that as disconnected
+    // so the status bar offers "Reconnect to Discord".
+    const onLost = (): void => {
+      // Ignore clients we already replaced or destroyed.
+      if (!this.isAttemptValid(id) || this.rpc !== rpc) return;
+      // Only a live connection can be lost. Failed attempts are reported by
+      // the catch below, and this stays idempotent if both the library event
+      // and the socket event fire.
+      if (this.getState() !== PluginState.connected) return;
+      this.setState(PluginState.disconnected);
+      this.logger.log("Lost connection to Discord", this.settings.showPopups);
+    };
+
+    rpc.once("disconnected", onLost);
 
     this.setState(PluginState.connecting);
 
@@ -151,6 +172,16 @@ export default class ObsidianDiscordRPC extends Plugin {
     try {
       await rpc.login();
       if (!this.isAttemptValid(id)) return;
+
+      // @xhayper/discord-rpc 1.5.1 never emits "disconnected" when Discord
+      // closes the socket: its close() returns early because the socket is
+      // already closed by then. Listen to the socket directly instead.
+      // The socket is a private field, so this depends on library internals.
+      (rpc.transport as unknown as { socket?: Socket }).socket?.once(
+        "close",
+        onLost,
+      );
+
       // login() resolves when the IPC transport connects, but the READY frame
       // (which fills rpc.user) may arrive right after. Wait a moment
       // so the first activity isn't lost.
@@ -217,8 +248,17 @@ export default class ObsidianDiscordRPC extends Plugin {
       showFileExtension && fileExtension
         ? `${fileName}.${fileExtension}`
         : fileName;
-    const date = useLoadedTime ? this.loadedTime : new Date();
-    this.lastSetTime = date;
+    let date: Date;
+    if (useLoadedTime) {
+      date = this.loadedTime;
+      this.lastSetTimeFile = undefined;
+    } else if (this.currentFile === this.lastSetTimeFile) {
+      date = this.lastSetTime;
+    } else {
+      date = new Date();
+      this.lastSetTime = date;
+      this.lastSetTimeFile = this.currentFile;
+    }
 
     const base = {
       startTimestamp: date,
