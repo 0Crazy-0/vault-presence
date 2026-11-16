@@ -46,7 +46,7 @@ jobs:
       - name: Package
         run: |
           mkdir "$PLUGIN_ID"
-          cp main.js manifest.json styles.css README.md "$PLUGIN_ID"/
+          cp main.js manifest.json styles.css README.md LICENSE "$PLUGIN_ID"/
           zip -r "$PLUGIN_ID.zip" "$PLUGIN_ID"
 
       - name: Create Release
