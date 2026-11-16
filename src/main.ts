@@ -87,12 +87,9 @@ export default class ObsidianDiscordRPC extends Plugin {
     }
 
     if (this.settings.connectOnStart) {
+      // connectDiscord() publishes currentFile via refreshActivity() once
+      // the connection is ready, so no republish is needed here.
       await this.connectDiscord();
-
-      if (activeFile) {
-        // Republish the activity now that the connection is ready.
-        await this.onFileOpen(activeFile);
-      }
     } else {
       this.setState(PluginState.disconnected);
     }
