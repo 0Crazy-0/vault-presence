@@ -1,0 +1,15 @@
+.vault-presence-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.vault-presence-icon {
+  display: inline-flex;
+}
+
+.vault-presence-icon svg {
+  height: 1.2em;
+  width: auto;
+}

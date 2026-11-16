@@ -1,0 +1,10 @@
+{
+  "id": "vault-presence",
+  "name": "Vault Presence",
+  "version": "1.0.0",
+  "minAppVersion": "1.0.0",
+  "description": "Show your vault and current note on Discord with Rich Presence.",
+  "author": "Crazy",
+  "authorUrl": "https://github.com/0Crazy-0",
+  "isDesktopOnly": true
+}
