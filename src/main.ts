@@ -90,10 +90,9 @@ export default class ObsidianDiscordRPC extends Plugin {
   }
 
   async onFileOpen(file: TFile | null): Promise<void> {
-    if (!file) {
-      return;
-    }
-    this.currentFile = file;
+    // A null event means no note is active; clear the stale file so
+    // refreshActivity falls back to its defaults.
+    this.currentFile = file ?? undefined;
     if (this.getState() === PluginState.connected) {
       await this.refreshActivity();
     }
