@@ -242,6 +242,7 @@ export default class ObsidianDiscordRPC extends Plugin {
       showVaultName,
       showCurrentFileName,
       useWatchingType,
+      useOriginalIcon,
     } = this.settings;
 
     const vault = customVaultName === "" ? vaultName : customVaultName;
@@ -272,7 +273,7 @@ export default class ObsidianDiscordRPC extends Plugin {
       ...(useWatchingType && { type: 3 }),
       timestamps: { start: date.getTime() },
       assets: {
-        large_image: "vault_logo",
+        large_image: useOriginalIcon ? "vault_logo_original" : "vault_logo",
         large_text: "Obsidian",
       },
     };

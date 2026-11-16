@@ -11,7 +11,8 @@ type ToggleKey =
   | "useLoadedTime"
   | "autoHideStatusBar"
   | "connectOnStart"
-  | "showPopups";
+  | "showPopups"
+  | "useOriginalIcon";
 
 interface ToggleOptions {
   /** Republishes the activity to Discord after saving. */
@@ -84,6 +85,11 @@ const TOGGLES: Record<ToggleKey, ToggleSpec> = {
     desc: "Enable this to show Notices when the plugin connects to, disconnects from, or loses connection to Discord.",
     options: { notices: ["Notices Enabled", "Notices Disabled"] },
   },
+  useOriginalIcon: {
+    name: "Use Original Obsidian Icon",
+    desc: "Use Obsidian's original purple crystal as the presence icon instead of the plugin's custom dark palette version.",
+    options: { refresh: true },
+  },
 };
 
 const CUSTOM_VAULT_NAME = {
@@ -113,7 +119,7 @@ const SECTIONS: SectionSpec[] = [
   },
   {
     heading: "Presence",
-    keys: ["useWatchingType", "useLoadedTime"],
+    keys: ["useWatchingType", "useOriginalIcon", "useLoadedTime"],
   },
   {
     heading: "Status bar",
