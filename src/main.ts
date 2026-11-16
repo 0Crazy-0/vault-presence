@@ -5,7 +5,7 @@ import { DiscordRPCSettings, PluginState } from "./settings/settings";
 import { DiscordRPCSettingsTab } from "./settings/settings-tab";
 import { StatusBar } from "./status-bar";
 
-const CLIENT_ID = "763813185022197831";
+const CLIENT_ID = "1571667739095990462";
 const READY_TIMEOUT_MS = 3000;
 
 export default class ObsidianDiscordRPC extends Plugin {
@@ -190,7 +190,7 @@ export default class ObsidianDiscordRPC extends Plugin {
 
     const base = {
       startTimestamp: date,
-      largeImageKey: "logo",
+      largeImageKey: "vault_logo",
       largeImageText: "Obsidian",
     };
 
