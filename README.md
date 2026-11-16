@@ -1,14 +1,14 @@
 # Vault Presence
 
-Show your vault and current note on Discord with Rich Presence.
+Show your current note and vault on Discord with Rich Presence.
 
-Vault Presence connects Obsidian to Discord and displays what you are doing: the name of your vault, the note you have open, and how long you have been working. Everything is configurable, so you decide how much you share.
+Vault Presence connects Obsidian to Discord and displays what you are doing: the note you have open, the name of your vault, and how long you have been working. Everything is configurable, so you decide how much you share.
 
 ![Vault Presence in Discord](assets/preview.png)
 
 ## Features
 
-- Shows the vault name and the current note in your Discord profile.
+- Shows the current note and the vault name in your Discord profile.
 - Optional privacy mode that hides file and vault names.
 - Custom vault name if you prefer not to reveal the real one.
 - Status bar with a Discord icon that shows the connection state quietly: it stays out of your way and adapts to the theme you are using.
