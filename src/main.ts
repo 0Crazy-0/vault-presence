@@ -48,13 +48,13 @@ export default class ObsidianDiscordRPC extends Plugin {
     const statusBarEl = this.addStatusBarItem();
     this.statusBar = new StatusBar(statusBarEl);
 
-    this.settings = Object.assign(
-      new DiscordRPCSettings(),
-      await this.loadData(),
-    );
+    const data = (await this.loadData()) as Partial<DiscordRPCSettings> | null;
+    this.settings = Object.assign(new DiscordRPCSettings(), data);
 
     this.registerEvent(
-      this.app.workspace.on("file-open", this.onFileOpen, this),
+      this.app.workspace.on("file-open", (file) => {
+        void this.onFileOpen(file);
+      }),
     );
 
     this.registerDomEvent(statusBarEl, "click", async () => {

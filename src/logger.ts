@@ -5,7 +5,7 @@ export class Logger {
     if (showPopups) {
       new Notice(message);
     }
-    console.log(`discordrpc: ${message}`);
+    console.debug(`discordrpc: ${message}`);
   }
 
   logIgnoreNoNotice(message: string): void {
