@@ -19,7 +19,7 @@ export default class ObsidianDiscordRPC extends Plugin {
   rpc?: Client;
   logger: Logger = new Logger();
   currentFile?: TFile;
-  loadedTime = new Date();
+  readonly loadedTime = new Date();
   lastSetTime = new Date();
 
   setState(state: PluginState): void {
@@ -129,7 +129,9 @@ export default class ObsidianDiscordRPC extends Plugin {
     await this.destroyClient();
     if (!this.isAttemptValid(id)) return;
 
-    this.loadedTime = new Date();
+    // loadedTime is initialized at plugin load and intentionally not
+    // reset here so reconnects preserve the "Use Obsidian Total Time"
+    // start timestamp.
     this.lastSetTime = new Date();
 
     const rpc = new Client({
