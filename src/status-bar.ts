@@ -1,6 +1,5 @@
 import { PluginState } from "./settings/settings";
 
-const AUTO_HIDE_MS = 10_000;
 const ICON_ONLY_MS = 5_000;
 
 // Discord logo (simple-icons). fill="currentColor" makes it inherit the
@@ -35,19 +34,19 @@ export class StatusBar {
   }
 
   private displayConnected(autoHide: boolean): void {
+    // With auto-hide enabled the status bar disappears immediately after
+    // connecting, without showing the "Connected" message.
+    if (autoHide) {
+      this.statusBarEl.empty();
+      return;
+    }
+
     this.render("Connected to Discord");
-    this.timer = window.setTimeout(
-      () => {
-        if (autoHide) {
-          this.statusBarEl.empty();
-        } else {
-          this.textEl.remove();
-          this.statusBarEl.setAttribute("aria-label", "Connected to Discord");
-        }
-        this.timer = null;
-      },
-      autoHide ? AUTO_HIDE_MS : ICON_ONLY_MS,
-    );
+    this.timer = window.setTimeout(() => {
+      this.textEl.remove();
+      this.statusBarEl.setAttribute("aria-label", "Connected to Discord");
+      this.timer = null;
+    }, ICON_ONLY_MS);
   }
 
   private render(text: string): void {
