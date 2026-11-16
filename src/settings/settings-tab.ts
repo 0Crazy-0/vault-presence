@@ -12,7 +12,8 @@ type ToggleKey =
   | "autoHideStatusBar"
   | "connectOnStart"
   | "showPopups"
-  | "useOriginalIcon";
+  | "useOriginalIcon"
+  | "showReadWriteImage";
 
 interface ToggleOptions {
   /** Republishes the activity to Discord after saving. */
@@ -90,6 +91,11 @@ const TOGGLES: Record<ToggleKey, ToggleSpec> = {
     desc: "Use Obsidian's original purple crystal as the presence icon instead of the plugin's custom dark palette version.",
     options: { refresh: true },
   },
+  showReadWriteImage: {
+    name: "Show Read/Write Small Image",
+    desc: "Show a small image next to the main icon that reflects whether you are reading (book) or editing (feather and ink) a note.",
+    options: { refresh: true },
+  },
 };
 
 const CUSTOM_VAULT_NAME = {
@@ -119,7 +125,12 @@ const SECTIONS: SectionSpec[] = [
   },
   {
     heading: "Presence",
-    keys: ["useWatchingType", "useOriginalIcon", "useLoadedTime"],
+    keys: [
+      "useWatchingType",
+      "useOriginalIcon",
+      "showReadWriteImage",
+      "useLoadedTime",
+    ],
   },
   {
     heading: "Status bar",

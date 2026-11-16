@@ -1,5 +1,12 @@
 import { Client } from "@xhayper/discord-rpc";
-import { App, Plugin, PluginManifest, TFile } from "obsidian";
+import {
+  App,
+  MarkdownView,
+  Plugin,
+  PluginManifest,
+  TFile,
+  debounce,
+} from "obsidian";
 import { Logger } from "./logger";
 import { DiscordRPCSettings, PluginState } from "./settings/settings";
 import { DiscordRPCSettingsTab } from "./settings/settings-tab";
@@ -26,6 +33,18 @@ export default class ObsidianDiscordRPC extends Plugin {
   // (e.g. settings changes) keep the elapsed time while a note change
   // starts a fresh one. Cleared while "Use Obsidian Total Time" is active.
   private lastSetTimeFile?: TFile;
+  // Small image published in the last SET_ACTIVITY, used to detect mode
+  // changes (read/write) without republishing on unrelated layout changes.
+  private lastSmallImage?: "read" | "write" | null;
+  // layout-change fires very often (resizes, pane moves, mode swaps), so the
+  // check is debounced and only republishes when the read/write mode changed.
+  private readonly onModeMaybeChanged = debounce(
+    () => {
+      void this.refreshActivityIfModeChanged();
+    },
+    500,
+    true,
+  );
 
   setState(state: PluginState): void {
     this.state = state;
@@ -54,6 +73,21 @@ export default class ObsidianDiscordRPC extends Plugin {
     this.registerEvent(
       this.app.workspace.on("file-open", (file) => {
         void this.onFileOpen(file);
+      }),
+    );
+
+    // Obsidian has no dedicated mode-change event: toggling between editing
+    // and reading swaps the view inside the same leaf, which surfaces as
+    // active-leaf-change and layout-change. The handler is debounced and
+    // only republishes when the mode actually changed.
+    this.registerEvent(
+      this.app.workspace.on("active-leaf-change", () => {
+        this.onModeMaybeChanged();
+      }),
+    );
+    this.registerEvent(
+      this.app.workspace.on("layout-change", () => {
+        this.onModeMaybeChanged();
       }),
     );
 
@@ -101,6 +135,40 @@ export default class ObsidianDiscordRPC extends Plugin {
     this.currentFile = file ?? undefined;
     if (this.getState() === PluginState.connected) {
       await this.refreshActivity();
+    }
+  }
+
+  /**
+   * Resolves the small image key for the active view: "read" while a
+   * Markdown view is in Reading mode, "write" while editing. Non-Markdown
+   * views default to "write". Returns null when the feature is disabled.
+   */
+  private getSmallImage(): "read" | "write" | null {
+    if (!this.settings.showReadWriteImage) {
+      return null;
+    }
+    const reading =
+      this.app.workspace.getActiveViewOfType(MarkdownView)?.getMode() ===
+      "preview";
+    return reading ? "read" : "write";
+  }
+
+  /**
+   * Republishes the activity only when the read/write mode of the active
+   * view changed since the last published one.
+   */
+  private async refreshActivityIfModeChanged(): Promise<void> {
+    if (this.getState() !== PluginState.connected) {
+      return;
+    }
+    const smallImage = this.getSmallImage();
+    if (smallImage === null || smallImage === this.lastSmallImage) {
+      return;
+    }
+    try {
+      await this.refreshActivity();
+    } catch (error) {
+      console.error("discordrpc: failed to update read/write image", error);
     }
   }
 
@@ -269,35 +337,47 @@ export default class ObsidianDiscordRPC extends Plugin {
     // Discord's first-come order, like other Rich Presence clients do.
     // The type field is omitted when useWatchingType is off so the payload
     // stays identical to the historical type 0 (Playing) one.
+    const smallImage = this.getSmallImage();
     const base = {
       ...(useWatchingType && { type: 3 }),
       timestamps: { start: date.getTime() },
       assets: {
         large_image: useOriginalIcon ? "vault_logo_original" : "vault_logo",
         large_text: "Obsidian",
+        ...(smallImage && {
+          small_image: smallImage,
+          small_text: smallImage === "read" ? "Reading" : "Editing",
+        }),
       },
     };
 
-    if (privacyMode) {
-      await rpc.request("SET_ACTIVITY", {
-        pid: process.pid,
-        activity: {
+    const activity = privacyMode
+      ? {
           ...base,
           details: "Editing Notes",
           state: "Working in a Vault",
-        },
-      });
-      return;
-    }
+        }
+      : {
+          ...base,
+          ...(showCurrentFileName && { details: file }),
+          ...(showVaultName && { state: `Vault: ${vault}` }),
+        };
 
     await rpc.request("SET_ACTIVITY", {
       pid: process.pid,
-      activity: {
-        ...base,
-        ...(showCurrentFileName && { details: file }),
-        ...(showVaultName && { state: `Vault: ${vault}` }),
-      },
+      activity,
     });
+
+    // Ignore completions from a client that was replaced or destroyed
+    // while the request was in flight.
+    if (this.rpc !== rpc) return;
+
+    this.lastSmallImage = smallImage;
+
+    // The mode may have changed while the request was in flight, and the
+    // debounced check skipped it because lastSmallImage was still stale.
+    // Recheck now; it only republishes if the mode really differs.
+    void this.refreshActivityIfModeChanged();
   }
 
   private async destroyClient(): Promise<void> {
