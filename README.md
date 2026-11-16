@@ -37,4 +37,3 @@ This project is licensed under the [MIT License](LICENSE).
 ## Credits
 
 Vault Presence is a fork of obsidian-discordrpc by Luke Leppan, who created the original plugin and its base. This fork modernizes the code and continues its maintenance. Full credit for the original project goes to him: https://github.com/lukeleppan/obsidian-discordrpc
-
