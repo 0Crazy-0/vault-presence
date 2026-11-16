@@ -10,6 +10,10 @@ const READY_TIMEOUT_MS = 3000;
 
 export default class ObsidianDiscordRPC extends Plugin {
   state: PluginState = PluginState.disconnected;
+  // Incremented to invalidate in-flight connection attempts; each attempt
+  // captures its own id and aborts if it no longer matches.
+  private connectionId = 0;
+  private stopping = false;
   declare settings: DiscordRPCSettings;
   private statusBar?: StatusBar;
   rpc?: Client;
@@ -107,14 +111,23 @@ export default class ObsidianDiscordRPC extends Plugin {
   }
 
   private async shutdown(): Promise<void> {
+    // Mark as stopping and invalidate pending attempts before cleanup so a
+    // still-running connectDiscord cannot publish presence afterward.
+    this.stopping = true;
+    this.connectionId++;
     // destroyClient never throws, so saving is always reached.
     await this.destroyClient();
+    this.setState(PluginState.disconnected);
     await this.saveData(this.settings);
   }
 
   async connectDiscord(): Promise<void> {
+    if (this.stopping) return;
+    const id = ++this.connectionId;
+
     // Avoids leaving dangling connections when reconnecting while connected.
     await this.destroyClient();
+    if (!this.isAttemptValid(id)) return;
 
     this.loadedTime = new Date();
     this.lastSetTime = new Date();
@@ -128,20 +141,24 @@ export default class ObsidianDiscordRPC extends Plugin {
     this.setState(PluginState.connecting);
 
     rpc.once("ready", () => {
+      if (!this.isAttemptValid(id)) return;
       this.setState(PluginState.connected);
       this.logger.log("Connected to Discord", this.settings.showPopups);
     });
 
     try {
       await rpc.login();
+      if (!this.isAttemptValid(id)) return;
       // login() resolves when the IPC transport connects, but the READY frame
       // (which fills rpc.user) may arrive right after. Wait a moment
       // so the first activity isn't lost.
       if (!rpc.user) {
         await this.waitForReady(rpc, READY_TIMEOUT_MS);
+        if (!this.isAttemptValid(id)) return;
       }
       await this.refreshActivity();
     } catch (error) {
+      if (!this.isAttemptValid(id)) return;
       console.error("discordrpc: failed to connect to Discord", error);
       this.setState(PluginState.disconnected);
       this.logger.log("Failed to connect to Discord", this.settings.showPopups);
@@ -149,9 +166,16 @@ export default class ObsidianDiscordRPC extends Plugin {
   }
 
   async disconnectDiscord(): Promise<void> {
+    // Invalidate pending connection attempts so a reconnect that is still
+    // awaiting login/ready cannot restore presence after the disconnect.
+    this.connectionId++;
     await this.destroyClient();
     this.setState(PluginState.disconnected);
     this.logger.log("Disconnected from Discord", this.settings.showPopups);
+  }
+
+  private isAttemptValid(id: number): boolean {
+    return id === this.connectionId && !this.stopping;
   }
 
   /**
