@@ -10,6 +10,7 @@ export class DiscordRPCSettings {
   privacyMode: boolean = false;
   useWatchingType: boolean = false;
   useOriginalIcon: boolean = false;
+  showReadWriteImage: boolean = true;
 }
 
 export enum PluginState {
