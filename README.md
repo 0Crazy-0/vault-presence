@@ -9,6 +9,9 @@ Vault Presence connects Obsidian to Discord and displays what you are doing: the
 ## Features
 
 - Shows the current note and the vault name in your Discord profile.
+- Read and write indicator with a small icon showing whether you are reading or editing a note.
+- Customizable activity type to display as "Watching" instead of "Playing", allowing it to coexist with games or other Rich Presences.
+- Choice between the plugin's custom dark icon and the original Obsidian logo.
 - Optional privacy mode that hides file and vault names.
 - Custom vault name if you prefer not to reveal the real one.
 - Status bar with a Discord icon that shows the connection state quietly: it stays out of your way and adapts to the theme you are using.
